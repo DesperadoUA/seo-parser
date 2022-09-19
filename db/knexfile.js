@@ -1,3 +1,4 @@
+require('../config')
 module.exports = {
         client: 'mysql',
         connection: {
