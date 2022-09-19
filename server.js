@@ -1,4 +1,5 @@
 const axios = require('axios')
+require('./config')
 const ParsString = require('./helpers/ParsStirng')
 
 const parse = async () => {
@@ -18,4 +19,4 @@ const parse = async () => {
                            .substring(4, 24)
     console.log('parse in:', data)
 }
-setInterval(parse, 60000)
+setInterval(parse, TIME_PARSE)
