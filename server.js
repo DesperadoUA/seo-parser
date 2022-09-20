@@ -14,37 +14,21 @@ const initialApp = async() => {
         if(urls.length) {
             store[domain] = new Set(urls.map(item => item.url))
         } else {
-            const urls = ParsString.parseSitemap(await html.get(domain))
-            store[domain] = new Set(urls)
-            dal.setUrlsByDomain(domain, urls)
+            const pageHTML = await html.get(domain)
+            if(pageHTML.status === 'ok') {
+                const urls = ParsString.parseSitemap(pageHTML.body)
+                store[domain] = new Set(urls)
+                dal.setUrlsByDomain(domain, urls)
+            }
+            else {
+                console.log('Send error 404', domain)
+            }
         }
     }
 }
 initialApp()
-const parse = async () => {
-    const domains = Object.keys(store)
-    const diff = {}
-    for (let domain of domains) {
-        const pageHTML = await html.get(domain)
-        const urls = ParsString.parseSitemap(pageHTML)
-        diff[domain] = {new: [], del: []}
-        urls.forEach(element => {
-           if(!store[domain].has(element)) {
-              diff[domain].new.push(element)
-           }  
-        })
-
-        const newSetUrl = new Set(urls)
-        for (const value of store[domain]) {
-            if(!newSetUrl.has(value)) {
-                diff[domain].del.push(value)
-            }
-        }
-    }
-    const data = new Date().toString('dd.MM.yyyy')
-                           .substring(4, 24)
-   console.log('parse in:', data)
-   for(diffItem in diff) {
+const createDiff = async(diff) => {
+    for(diffItem in diff) {
         if(diff[diffItem].new.length !== 0) {
            await dal.setUrlsByDomain(diffItem, diff[diffItem].new)
            diff[diffItem].new.forEach(item => store[diffItem].add(item))
@@ -55,5 +39,38 @@ const parse = async () => {
         }
    }
     console.log(diff)
+}
+const parse = async () => {
+    const domains = Object.keys(store)
+    const diff = {}
+    for (const domain of domains) {
+        const pageHTML = await html.get(domain)
+        if(pageHTML.status === 'ok') {
+            const urls = ParsString.parseSitemap(pageHTML.body)
+            diff[domain] = {new: [], del: []}
+            urls.forEach(element => {
+               if(!store[domain].has(element)) {
+                  diff[domain].new.push(element)
+               }  
+            })
+    
+            const newSetUrl = new Set(urls)
+            for (const value of store[domain]) {
+                if(!newSetUrl.has(value)) {
+                    diff[domain].del.push(value)
+                }
+            }
+        }
+        else {
+            diff[domain] = {new: [], del: []}
+            console.log('Send Error')
+        }
+    }
+    /*
+    const data = new Date().toString('dd.MM.yyyy')
+                           .substring(4, 24)
+   console.log('parse in:', data)
+    */
+    createDiff(diff)
 }
 setInterval(parse, TIME_PARSE)
